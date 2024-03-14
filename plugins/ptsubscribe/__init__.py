@@ -18,6 +18,8 @@ from app.helper.rss import RssHelper
 from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas.types import SystemConfigKey, MediaType
+from app.utils.tokens import Tokens
+from app.utils.string import StringUtils
 
 lock = Lock()
 
@@ -639,6 +641,17 @@ class PtSubscribe(_PluginBase):
                     if not meta.name:
                         logger.warn(f"{title} 未识别到有效数据")
                         continue
+
+                    title_cn = re.sub(r"^\[.+?]", "", title, count=1)
+                    title_list = re.split(r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|～|:|;|&|\||#|_|「|」|~", title_cn)
+                    title_ascii = re.findall(r'\w+', title_cn, re.A)
+                    for i in title_list:
+                        if i not in title_ascii:
+                            if StringUtils.is_chinese(i):
+                                meta.name = i
+                                logger.warn(f'更改中文标题，标题：{meta.name}')
+                                break
+
                     mediainfo: MediaInfo = self.chain.recognize_media(meta=meta)
                     if not mediainfo:
                         logger.warn(f'未识别到媒体信息，标题：{title}')
