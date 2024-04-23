@@ -1,5 +1,6 @@
 import datetime
 import re
+import traceback
 from pathlib import Path
 from threading import Lock
 from typing import Optional, Any, List, Dict, Tuple
@@ -32,7 +33,7 @@ class PtSubscribe(_PluginBase):
     # 插件图标
     plugin_icon = "Zerotier_A.png"
     # 插件版本
-    plugin_version = "1.0"
+    plugin_version = "1.1"
     # 插件作者
     plugin_author = "bestfang"
     # 作者主页
@@ -622,7 +623,7 @@ class PtSubscribe(_PluginBase):
                     description = result.get("description")
                     enclosure = result.get("enclosure")
                     link = result.get("link")
-                    sise = result.get("sise")
+                    size = result.get("size")
                     pubdate: datetime.datetime = result.get("pubdate")
                     # 检查是否处理过
                     if not title or title in [h.get("key") for h in history]:
@@ -656,13 +657,18 @@ class PtSubscribe(_PluginBase):
                     if not mediainfo:
                         logger.warn(f'未识别到媒体信息，标题：{title}')
                         continue
+                    # 历史过滤
+                    title_format = f"{mediainfo.title} {meta.season}"
+                    if not title_format or title_format in [h.get("title") for h in history]:
+                        logger.info(f"{title_format} 已在历史记录里")
+                        continue
                     # 种子
                     torrentinfo = TorrentInfo(
                         title=title,
                         description=description,
                         enclosure=enclosure,
                         page_url=link,
-                        size=sise,
+                        size=size,
                         pubdate=pubdate.strftime("%Y-%m-%d %H:%M:%S") if pubdate else None,
                         site_proxy=self._proxy,
                     )
@@ -743,7 +749,7 @@ class PtSubscribe(_PluginBase):
                         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     })
                 except Exception as err:
-                    logger.error(f'刷新RSS数据出错：{str(err)}')
+                    logger.error(f'刷新RSS数据出错：{str(err)} - {traceback.format_exc()}')
             logger.info(f"RSS {url} 刷新完成")
         # 保存历史记录
         self.save_data('history', history)
