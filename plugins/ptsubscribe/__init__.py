@@ -35,7 +35,7 @@ class PtSubscribe(_PluginBase):
     # 插件图标
     plugin_icon = "Zerotier_A.png"
     # 插件版本
-    plugin_version = "1.3"
+    plugin_version = "1.4"
     # 插件作者
     plugin_author = "bestfang"
     # 作者主页
@@ -671,11 +671,11 @@ class PtSubscribe(_PluginBase):
                     # 检查规则
                     if self._include and not re.search(r"%s" % self._include,
                                                        f"{title} {description}", re.IGNORECASE):
-                        logger.info(f"{title} - {description} 不符合包含规则")
+                        logger.info(f"{title} 不符合包含规则")
                         continue
                     if self._exclude and re.search(r"%s" % self._exclude,
                                                    f"{title} {description}", re.IGNORECASE):
-                        logger.info(f"{title} - {description} 不符合排除规则")
+                        logger.info(f"{title} 不符合排除规则")
                         continue
                     # 识别媒体信息
                     meta = MetaInfo(title=title, subtitle=description)
@@ -683,6 +683,7 @@ class PtSubscribe(_PluginBase):
                         logger.warn(f"{title} 未识别到有效数据")
                         continue
                     # 替换中文标题    
+                    logger.info(f"开始识别：{title}!")
                     title_cn = re.sub(r"^\[.+?]", "", title, count=1)
                     title_list = re.split(r"\.|\s+|\(|\)|\[|]|-|\+|【|】|/|～|:|;|&|\||#|_|「|」|~", title_cn)
                     title_ascii = re.findall(r'\w+', title_cn, re.A)
@@ -720,7 +721,7 @@ class PtSubscribe(_PluginBase):
                             mediainfo=mediainfo
                         )
                         if not result:
-                            logger.info(f"{title} {description} 不匹配过滤规则")
+                            logger.info(f"{title} 不匹配过滤规则")
                             continue
                     # 过滤年份规则
                     if mediainfo.type == MediaType.TV:
