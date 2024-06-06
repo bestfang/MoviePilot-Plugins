@@ -35,7 +35,7 @@ class PtSubscribe(_PluginBase):
     # 插件图标
     plugin_icon = "Zerotier_A.png"
     # 插件版本
-    plugin_version = "1.4"
+    plugin_version = "1.5"
     # 插件作者
     plugin_author = "bestfang"
     # 作者主页
@@ -769,8 +769,8 @@ class PtSubscribe(_PluginBase):
                         if subflag:
                             logger.info(f'{mediainfo.title_year} {meta.season} 正在订阅中')
                             continue
-                        # 修改集数
                         if mediainfo.type == MediaType.TV:
+                            # TV 修改集数
                             if not mediainfo.seasons:
                                 logger.warn(f'seasons=null,集数修改成50!,标题：{title}')
                                 mediainfo.total_episode = 50
@@ -783,15 +783,23 @@ class PtSubscribe(_PluginBase):
                                     mediainfo.total_episode = 50
                                 else:
                                     mediainfo.total_episode = total_episode
-                        # 添加订阅
-                        self.subscribechain.add(title=mediainfo.title,
-                                                year=mediainfo.year,
-                                                mtype=mediainfo.type,
-                                                tmdbid=mediainfo.tmdb_id,
-                                                season=meta.season,
-                                                total_episode=mediainfo.total_episode,
-                                                exist_ok=True,
-                                                username="PT订阅")
+                            # 添加订阅
+                            self.subscribechain.add(title=mediainfo.title,
+                                                    year=mediainfo.year,
+                                                    mtype=mediainfo.type,
+                                                    tmdbid=mediainfo.tmdb_id,
+                                                    season=meta.season,
+                                                    total_episode=mediainfo.total_episode,
+                                                    exist_ok=True,
+                                                    username="Pt订阅")
+                        else:
+                            self.subscribechain.add(title=mediainfo.title,
+                                                    year=mediainfo.year,
+                                                    mtype=mediainfo.type,
+                                                    tmdbid=mediainfo.tmdb_id,
+                                                    season=meta.begin_season,
+                                                    exist_ok=True,
+                                                    username="Pt订阅")                        
                     # 存储历史记录
                     history.append({
                         "title": f"{mediainfo.title} {meta.season}",
