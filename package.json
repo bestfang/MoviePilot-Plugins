@@ -2,7 +2,7 @@
     "PtSubscribe": {
         "name": "PT订阅",
         "description": "定时刷新PT RSS报文，识别内容后添加订阅或直接下载。",
-        "version": "1.8",
+        "version": "1.9",
         "icon": "Zerotier_A.png",
         "author": "bestfang",
         "level": 2

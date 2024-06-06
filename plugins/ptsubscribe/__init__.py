@@ -35,7 +35,7 @@ class PtSubscribe(_PluginBase):
     # 插件图标
     plugin_icon = "Zerotier_A.png"
     # 插件版本
-    plugin_version = "1.8"
+    plugin_version = "1.9"
     # 插件作者
     plugin_author = "bestfang"
     # 作者主页
@@ -779,7 +779,7 @@ class PtSubscribe(_PluginBase):
                                     meta.season = 1
                                 total_episode = len(mediainfo.seasons.get(meta.season) or [])
                                 if not total_episode or total_episode ==  1:
-                                    logger.warn(f'集数为1,修改成50!,标题：{title}')
+                                    logger.warn(f'集数为1,修改成30!,标题：{title}')
                                     mediainfo.total_episode = 30
                                 else:
                                     mediainfo.total_episode = total_episode
