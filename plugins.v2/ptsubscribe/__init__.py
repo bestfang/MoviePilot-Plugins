@@ -21,8 +21,6 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas import ExistMediaInfo
 from app.schemas.types import SystemConfigKey, MediaType
-from app.utils.tokens import Tokens
-from app.utils.string import StringUtils
 
 lock = Lock()
 
@@ -71,6 +69,7 @@ class PtSubscribe(_PluginBase):
     _clearflag: bool = False
     _action: str = "subscribe"
     _save_path: str = ""
+    _size_range: str = ""
 
     def init_plugin(self, config: dict = None):
         self.rsshelper = RssHelper()
@@ -83,6 +82,7 @@ class PtSubscribe(_PluginBase):
 
         # 配置
         if config:
+            self.__validate_and_fix_config(config=config)
             self._enabled = config.get("enabled")
             self._cron = config.get("cron")
             self._notify = config.get("notify")
@@ -97,6 +97,7 @@ class PtSubscribe(_PluginBase):
             self._clear = config.get("clear")
             self._action = config.get("action")
             self._save_path = config.get("save_path")
+            self._size_range = config.get("size_range")
 
         if self._onlyonce:
             self._scheduler = BackgroundScheduler(timezone=settings.TZ)
@@ -252,7 +253,7 @@ class PtSubscribe(_PluginBase):
                                 },
                                 'content': [
                                     {
-                                        'component': 'VTextField',
+                                        'component': 'VCronField',
                                         'props': {
                                             'model': 'cron',
                                             'label': '执行周期',
@@ -386,11 +387,28 @@ class PtSubscribe(_PluginBase):
                     {
                         'component': 'VRow',
                         'content': [
-
                             {
                                 'component': 'VCol',
                                 'props': {
-                                    'cols': 12
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'size_range',
+                                            'label': '种子大小(GB)',
+                                            'placeholder': '如：3 或 3-5'
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
                                 },
                                 'content': [
                                     {
@@ -434,7 +452,7 @@ class PtSubscribe(_PluginBase):
                                         'component': 'VSwitch',
                                         'props': {
                                             'model': 'filter',
-                                            'label': '使用过滤规则',
+                                            'label': '使用订阅优先级规则',
                                         }
                                     }
                                 ]
@@ -473,7 +491,8 @@ class PtSubscribe(_PluginBase):
             "clear": False,
             "filter": False,
             "action": "subscribe",
-            "save_path": ""
+            "save_path": "",
+            "size_range": ""
         }
 
     def get_page(self) -> List[dict]:
@@ -631,7 +650,8 @@ class PtSubscribe(_PluginBase):
             "clear": self._clear,
             "filter": self._filter,
             "action": self._action,
-            "save_path": self._save_path
+            "save_path": self._save_path,
+            "size_range": self._size_range
         })
 
     def check(self):
@@ -655,7 +675,7 @@ class PtSubscribe(_PluginBase):
                 logger.error(f"未获取到RSS数据：{url}")
                 return
             # 过滤规则
-            filter_rule = self.systemconfig.get(SystemConfigKey.SubscribeFilterRules)
+            filter_groups = self.systemconfig.get(SystemConfigKey.SubscribeFilterRuleGroups)
             # 解析数据
             for result in results:
                 try:
@@ -677,6 +697,14 @@ class PtSubscribe(_PluginBase):
                                                    f"{title} {description}", re.IGNORECASE):
                         logger.info(f"{title} 不符合排除规则")
                         continue
+                    if self._size_range:
+                        sizes = [float(_size) * 1024 ** 3 for _size in self._size_range.split("-")]
+                        if len(sizes) == 1 and float(size) < sizes[0]:
+                            logger.info(f"{title} - 种子大小不符合条件")
+                            continue
+                        elif len(sizes) > 1 and not sizes[0] <= float(size) <= sizes[1]:
+                            logger.info(f"{title} - 种子大小不在指定范围")
+                            continue
                     # 识别媒体信息
                     meta = MetaInfo(title=title, subtitle=description)
                     if not meta.name:
@@ -716,7 +744,7 @@ class PtSubscribe(_PluginBase):
                     # 过滤种子
                     if self._filter:
                         result = self.chain.filter_torrents(
-                            rule_string=filter_rule,
+                            rule_groups=filter_groups,
                             torrent_list=[torrentinfo],
                             mediainfo=mediainfo
                         )
@@ -818,3 +846,28 @@ class PtSubscribe(_PluginBase):
         self.save_data('history', history)
         # 缓存只清理一次
         self._clearflag = False
+
+    def __log_and_notify_error(self, message):
+        """
+        记录错误日志并发送系统通知
+        """
+        logger.error(message)
+        self.systemmessage.put(message, title="PT订阅")
+
+    def __validate_and_fix_config(self, config: dict = None) -> bool:
+        """
+        检查并修正配置值
+        """
+        size_range = config.get("size_range")
+        if size_range and not self.__is_number_or_range(str(size_range)):
+            self.__log_and_notify_error(f"自定义订阅出错，种子大小设置错误：{size_range}")
+            config["size_range"] = None
+            return False
+        return True
+
+    @staticmethod
+    def __is_number_or_range(value):
+        """
+        检查字符串是否表示单个数字或数字范围（如'5', '5.5', '5-10' 或 '5.5-10.2'）
+        """
+        return bool(re.match(r"^\d+(\.\d+)?(-\d+(\.\d+)?)?$", value))
