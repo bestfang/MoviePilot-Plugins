@@ -21,6 +21,8 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas import ExistMediaInfo
 from app.schemas.types import SystemConfigKey, MediaType
+from app.utils.tokens import Tokens
+from app.utils.string import StringUtils
 
 lock = Lock()
 
@@ -33,7 +35,7 @@ class PtSubscribe(_PluginBase):
     # 插件图标
     plugin_icon = "Zerotier_A.png"
     # 插件版本
-    plugin_version = "2.0"
+    plugin_version = "2.1"
     # 插件作者
     plugin_author = "bestfang"
     # 作者主页
